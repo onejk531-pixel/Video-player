@@ -223,6 +223,24 @@
           <input type="text" id="videoUrlInput" placeholder="Paste video URL...">
           <button id="addVideoBtn">Add</button>
         </div>
+        <div class="cloud-upload" id="cloudUpload">
+          <div class="upload-header">
+            <h3>Cloud Upload</h3>
+            <span class="upload-status" id="uploadStatus"></span>
+          </div>
+          <label class="upload-btn" id="uploadBtn">
+            <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+            <span>Upload to Cloud</span>
+            <input type="file" id="cloudFileInput" accept="video/*" hidden>
+          </label>
+          <div class="upload-progress" id="uploadProgress">
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <span class="progress-text" id="progressText">0%</span>
+          </div>
+          <p class="upload-note">Uses Cloudinary (free 25GB)</p>
+        </div>
         <div class="playlist-search">
           <input type="text" id="playlistSearch" placeholder="Search videos...">
         </div>

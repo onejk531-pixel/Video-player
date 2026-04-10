@@ -59,6 +59,15 @@ class AdvancedVideoPlayer {
     this.resumeModal = document.getElementById("resumeModal");
     this.resumeTime = document.getElementById("resumeTime");
     this.fileInput = document.getElementById("fileInput");
+    this.cloudFileInput = document.getElementById("cloudFileInput");
+    this.cloudUpload = document.getElementById("cloudUpload");
+    this.uploadProgress = document.getElementById("uploadProgress");
+    this.progressFill = document.getElementById("progressFill");
+    this.progressText = document.getElementById("progressText");
+    this.uploadStatus = document.getElementById("uploadStatus");
+
+    this.cloudName = localStorage.getItem("cloudName") || "";
+    this.cloudUploadPreset = localStorage.getItem("cloudUploadPreset") || "";
 
     this.playlistItems = [];
     this.currentIndex = 0;
@@ -186,6 +195,7 @@ class AdvancedVideoPlayer {
     this.exportBtn.addEventListener("click", () => this.exportPlaylist());
     this.importInput.addEventListener("change", (e) => this.importPlaylist(e));
     this.fileInput.addEventListener("change", (e) => this.openLocalFiles(e));
+    this.cloudFileInput.addEventListener("change", (e) => this.uploadToCloud(e));
 
     this.resumeModal.querySelector("#resumeContinue").addEventListener("click", () => this.resumePlayback());
     this.resumeModal.querySelector("#resumeStart").addEventListener("click", () => this.startOver());
@@ -825,6 +835,100 @@ class AdvancedVideoPlayer {
     
     this.showToast(`Added ${files.length} file(s)`);
     e.target.value = "";
+  }
+
+  async uploadToCloud(e) {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    if (!this.cloudName || !this.cloudUploadPreset) {
+      this.showSetupPrompt();
+      return;
+    }
+
+    const file = files[0];
+    if (!file.type.startsWith("video/")) {
+      this.showToast("Please select a video file");
+      return;
+    }
+
+    this.cloudUpload.classList.add("uploading");
+    this.uploadProgress.classList.add("visible");
+    this.uploadStatus.textContent = "Uploading...";
+    this.progressFill.style.width = "0%";
+    this.progressText.textContent = "0%";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", this.cloudUploadPreset);
+    formData.append("resource_type", "video");
+
+    try {
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          this.progressFill.style.width = `${percent}%`;
+          this.progressText.textContent = `${percent}%`;
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          const videoUrl = response.secure_url;
+          const title = file.name.replace(/\.[^/.]+$/, "");
+          const thumbnail = response.secure_url.replace(/\.[^/.]+$/, ".jpg");
+          
+          this.addToPlaylist(videoUrl, title, thumbnail);
+          this.cloudUpload.classList.remove("uploading");
+          this.cloudUpload.classList.add("done");
+          this.uploadStatus.textContent = "Uploaded!";
+          this.showToast(`Uploaded: ${title}`);
+          
+          setTimeout(() => {
+            this.uploadProgress.classList.remove("visible");
+            this.cloudUpload.classList.remove("done");
+            this.uploadStatus.textContent = "";
+          }, 3000);
+        } else {
+          throw new Error("Upload failed");
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        throw new Error("Upload failed");
+      });
+
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${this.cloudName}/video/upload`);
+      xhr.send(formData);
+    } catch (error) {
+      this.cloudUpload.classList.remove("uploading");
+      this.uploadProgress.classList.remove("visible");
+      this.uploadStatus.textContent = "Failed";
+      this.showToast("Upload failed: " + error.message);
+    }
+
+    e.target.value = "";
+  }
+
+  showSetupPrompt() {
+    const cloudName = prompt("Enter your Cloudinary Cloud Name:");
+    if (!cloudName) return;
+    
+    const uploadPreset = prompt("Enter your Cloudinary Upload Preset:\n\n(Create one at cloudinary.com/settings/upload)");
+    if (!uploadPreset) return;
+
+    this.cloudName = cloudName.trim();
+    this.cloudUploadPreset = uploadPreset.trim();
+    
+    localStorage.setItem("cloudName", this.cloudName);
+    localStorage.setItem("cloudUploadPreset", this.cloudUploadPreset);
+    
+    this.showToast("Cloudinary configured! Try uploading again.");
+    this.uploadStatus.textContent = "Configured";
+    this.uploadStatus.style.color = "#4CAF50";
   }
 
   exportPlaylist() {
