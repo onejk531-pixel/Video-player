@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "detectedIdeTargets": [
+    "agents"
+  ],
+  "adapterDecisions": {
+    "agents": {
+      "policy": "accepted",
+      "updatedAt": "2026-04-10T19:47:20.638Z"
+    }
+  },
+  "lastPromptAt": "2026-04-10T19:47:20.638Z"
+}
